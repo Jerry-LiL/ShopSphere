@@ -1,0 +1,75 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: shopsphere-app
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      APP_NAME: ShopSphere
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_URL: http://localhost:8000
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: shopsphere
+      DB_USERNAME: shopsphere_user
+      DB_PASSWORD: shopsphere_secret
+      QUEUE_CONNECTION: database
+      SESSION_DRIVER: database
+    volumes:
+      - .:/var/www/html
+      - /var/www/html/vendor
+    depends_on:
+      db:
+        condition: service_healthy
+
+  queue:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: shopsphere-queue
+    restart: unless-stopped
+    command: php artisan queue:work --tries=3 --backoff=5,15,60
+    environment:
+      APP_NAME: ShopSphere
+      APP_ENV: local
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: shopsphere
+      DB_USERNAME: shopsphere_user
+      DB_PASSWORD: shopsphere_secret
+      QUEUE_CONNECTION: database
+    volumes:
+      - .:/var/www/html
+      - /var/www/html/vendor
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: mysql:8.0
+    container_name: shopsphere-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: shopsphere
+      MYSQL_USER: shopsphere_user
+      MYSQL_PASSWORD: shopsphere_secret
+      MYSQL_ROOT_PASSWORD: shopsphere_root
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pshopsphere_root"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  mysql_data:
+    driver: local
