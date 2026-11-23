@@ -24,7 +24,11 @@ class ProductController extends Controller
             'sort',
         ]);
 
-        $perPage = min((int) $request->input('per_page', 15), 50);
+        $perPage = (int) $request->input('per_page', 15);
+        if ($perPage < 1) {
+            $perPage = 15;
+        }
+        $perPage = min($perPage, 50);
 
         $products = Product::active()
             ->with(['category', 'store'])

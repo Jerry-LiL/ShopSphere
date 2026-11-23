@@ -175,4 +175,23 @@ class ProductApiTest extends TestCase
             ->assertJsonPath('product.price', '179.99')
             ->assertJsonPath('product.is_active', false);
     }
+
+    public function test_invalid_per_page_falls_back_to_default(): void
+    {
+        $this->getJson('/api/v1/products?per_page=abc')
+            ->assertOk()
+            ->assertJsonPath('per_page', 15);
+
+        $this->getJson('/api/v1/products?per_page=0')
+            ->assertOk()
+            ->assertJsonPath('per_page', 15);
+
+        $this->getJson('/api/v1/products?per_page=-5')
+            ->assertOk()
+            ->assertJsonPath('per_page', 15);
+
+        $this->getJson('/api/v1/products?per_page=100')
+            ->assertOk()
+            ->assertJsonPath('per_page', 50);
+    }
 }
