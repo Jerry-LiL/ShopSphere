@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Webhook;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreWebhookEndpointRequest extends FormRequest
 {
@@ -16,7 +17,7 @@ class StoreWebhookEndpointRequest extends FormRequest
         return [
             'url' => ['required', 'url', 'max:255'],
             'secret' => ['required', 'string', 'min:8', 'max:255'],
-            'event' => ['required', 'string', 'max:50'],
+            'event' => ['required', 'string', Rule::in(['order.created', 'order.updated', '*'])],
             'is_active' => ['sometimes', 'boolean'],
         ];
     }

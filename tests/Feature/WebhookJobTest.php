@@ -146,4 +146,49 @@ class WebhookJobTest extends TestCase
         Http::assertNothingSent();
         $this->assertEquals(0, WebhookDelivery::count());
     }
+
+    public function test_admin_cannot_register_webhook_with_unknown_event(): void
+    {
+        $admin = User::create([
+            'name' => 'Admin Webhook',
+            'email' => 'admin@wh.test',
+            'password' => Hash::make('password'),
+            'role' => User::ROLE_ADMIN,
+        ]);
+
+        $response = $this->actingAs($admin)->from('/admin/webhooks')->post('/admin/webhooks', [
+            'url' => 'https://hooks.example.com/shop',
+            'secret' => 'secretkey123',
+            'event' => 'order.deleted',
+        ]);
+
+        $response->assertRedirect('/admin/webhooks');
+        $response->assertSessionHasErrors('event');
+        $this->assertDatabaseMissing('webhook_endpoints', [
+            'url' => 'https://hooks.example.com/shop',
+            'event' => 'order.deleted',
+        ]);
+    }
+
+    public function test_admin_can_register_webhook_for_known_event(): void
+    {
+        $admin = User::create([
+            'name' => 'Admin Webhook 2',
+            'email' => 'admin2@wh.test',
+            'password' => Hash::make('password'),
+            'role' => User::ROLE_ADMIN,
+        ]);
+
+        $response = $this->actingAs($admin)->post('/admin/webhooks', [
+            'url' => 'https://hooks.example.com/orders',
+            'secret' => 'secretkey123',
+            'event' => 'order.updated',
+        ]);
+
+        $response->assertRedirect();
+        $this->assertDatabaseHas('webhook_endpoints', [
+            'url' => 'https://hooks.example.com/orders',
+            'event' => 'order.updated',
+        ]);
+    }
 }
